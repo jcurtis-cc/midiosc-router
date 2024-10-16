@@ -13,6 +13,7 @@
     let osc: OSC | null = null;
     let oscStatus = false;
     let statusMessage = '';
+    let addrSelected = '/midi';
 
     function startOSC() {
         const options = {
@@ -67,9 +68,9 @@
     function handleMIDIMessage(event) {
         const [status, data1, data2] = event.data;
         if (osc && osc.status() === OSC.STATUS.IS_OPEN) {
-            const message = new OSC.Message('/midi', status, data1, data2);
+            const message = new OSC.Message(addrSelected, status, data1, data2);
             osc.send(message);
-            oscOutStream = [`${event.timeStamp.toFixed(2)} Sent localhost:${portSelected} /midi ${status} ${data1} ${data2}`, ...oscOutStream.slice(0, 19)];
+            oscOutStream = [`${event.timeStamp.toFixed(2)} Sent localhost:${portSelected} ${addrSelected} ${status} ${data1} ${data2}`, ...oscOutStream.slice(0, 19)];
         } else {
             updateStatus('OSC connection is not open...');
             oscStatus = false;
@@ -111,7 +112,7 @@
 {/if}
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 1em">
+<div class="grid-container">
   <div>
     <h2>midi in ↩️</h2>
     <select id="midiin" bind:value={midiinSelected}>
@@ -131,20 +132,23 @@
 
   <div>
     <h2>osc out ↪️ {oscStatusIcon}</h2>
-    <form method="POST" action="?/start" use:enhance={({ formElement, formData, action, cancel, submitter }) => {
-		return async ({ result, update }) => {
-            if (result.status && result.status >= 200 && result.status < 300) {
-                startOSC();
-                portSelected = port;
-                oscStatus = true;
-            } else {
-                oscStatus = false;
-            }
-		};
-	}}>
-        <input type="number" name="port" bind:value={port} min="8000" max="11000" />
-        <button>{oscStatus ? 'Change Port' : 'Start'}</button>
-    </form>
+    <div class="osc-param-grid">
+        <form method="POST" action="?/start" use:enhance={({ formElement, formData, action, cancel, submitter }) => {
+            return async ({ result, update }) => {
+                if (result.status && result.status >= 200 && result.status < 300) {
+                    startOSC();
+                    portSelected = port;
+                    oscStatus = true;
+                } else {
+                    oscStatus = false;
+                }
+            };
+        }}>
+            <input type="number" name="port" bind:value={port} min="8000" max="11000" />
+            <button>{oscStatus ? 'Change Port' : 'Start'}</button>
+        </form>
+        <input type="text" bind:value={addrSelected} />
+    </div>
     <div>
         <p>
         {#each oscOutStream as msg}
@@ -162,6 +166,10 @@
         background-color: #333;
         color: #fff;
     }
+    * {
+        font-family: 'Arial', sans-serif;
+        box-sizing: border-box;
+    }
     .wrapper {
         min-height: 1.1em;
         margin: 0em;
@@ -176,5 +184,16 @@
         font-family: 'Arial', sans-serif;
         font-size:small;
         margin: 0.75%;
+    }
+    .grid-container {
+        display: grid;
+        grid-template-columns: 2fr 2fr;
+        grid-gap: 2em;
+        max-width: 1200px;
+    }
+    .osc-param-grid {
+        display: grid;
+        grid-template-columns: 0.45fr 0fr;
+        grid-gap: 0em;
     }
 </style>
